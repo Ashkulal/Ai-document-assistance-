@@ -71,42 +71,43 @@
 
             <div class="interview-panel" id="interviewPanel" style="display:none;">
                 <div class="round-selector" id="roundSelector">
-                    <button class="round-btn aptitude" onclick="startRound('aptitude')">📝 Aptitude</button>
-                    <button class="round-btn technical" onclick="startRound('technical')">💻 Technical</button>
-                    <button class="round-btn hr" onclick="startRound('hr')">🤝 HR Round</button>
-                    <button class="round-btn behavioral" onclick="startRound('behavioral')">🧠 Behavioral</button>
+                    <button class="round-btn aptitude" onclick="startMCQ('aptitude')">📝 Aptitude (30 Q)</button>
+                    <button class="round-btn technical" onclick="startMCQ('technical')">💻 Technical (30 Q)</button>
+                    <button class="round-btn coding" onclick="startCoding()">⌨️ Coding</button>
                 </div>
+
                 <div class="active-round" id="activeRound" style="display:none;">
-                    <span class="round-badge" id="roundBadge">Technical Round</span>
-                    <span class="question-counter" id="questionCounter">Q1/10</span>
-                    <button class="end-btn" onclick="endRound()">End Round</button>
+                    <span class="round-badge" id="roundBadge">Aptitude</span>
+                    <span class="question-counter" id="questionCounter">Q1/30</span>
+                    <div class="timer" id="timer">00:00</div>
+                    <button class="end-btn" onclick="endRound()">End</button>
+                </div>
+
+                <div class="progress-bar" id="progressBar" style="display:none;">
+                    <div class="progress-fill" id="progressFill"></div>
                 </div>
             </div>
 
             <div class="chat-messages" id="chatMessages">
-                <div class="welcome-message">
+                <div class="welcome-message" id="welcomeMessage">
                     <div class="welcome-icon">🎯</div>
                     <h3>Interview Practice Mode</h3>
-                    <p>Upload your resume, select a round, and start practicing!</p>
+                    <p>Upload your resume and start practicing!</p>
                     <div class="features-grid">
-                        <div class="feature">📝 Aptitude Questions</div>
-                        <div class="feature">💻 Technical Questions</div>
-                        <div class="feature">🤝 HR Round Questions</div>
-                        <div class="feature">🧠 Behavioral Questions</div>
-                        <div class="feature">🎤 Voice Input</div>
-                        <div class="feature">📊 Score Tracking</div>
+                        <div class="feature">📝 30 Aptitude MCQs</div>
+                        <div class="feature">💻 30 Technical MCQs</div>
+                        <div class="feature">⌨️ Coding Challenges</div>
+                        <div class="feature">📊 Auto Scoring</div>
                     </div>
                 </div>
             </div>
 
-            <div class="chat-input-area">
+            <div class="chat-input-area" id="chatInputArea">
                 <div class="input-wrapper">
                     <textarea id="questionInput" placeholder="Type your answer or use voice..." rows="1"
                         onkeydown="handleKey(event)"></textarea>
-                    <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()" title="Voice Input">
-                        🎤
-                    </button>
-                    <button class="send-btn" onclick="sendAnswer()" id="sendBtn" disabled>
+                    <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()" title="Voice Input">🎤</button>
+                    <button class="send-btn" onclick="sendChat()" id="sendBtn" disabled>
                         <span>→</span>
                     </button>
                 </div>
