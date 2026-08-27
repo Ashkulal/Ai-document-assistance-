@@ -276,7 +276,9 @@ function parseQuestions(text) {
     for (const line of lines) {
         const match = line.match(/^\d+[\.\)]\s*(.+)/);
         if (match) {
-            qs.push(match[1].trim());
+            let q = match[1].trim();
+            q = q.replace(/\s*\([^)]*\)\s*$/, "");
+            if (q.length > 3) qs.push(q);
         }
     }
     return qs;
@@ -290,6 +292,7 @@ function showActiveRound() {
         behavioral: "🧠 Behavioral"
     };
 
+    document.getElementById("roundSelector").style.display = "none";
     document.getElementById("activeRound").style.display = "flex";
     document.getElementById("roundBadge").textContent = roundNames[currentRound];
     document.getElementById("questionCounter").textContent = `Q${currentQuestionIndex + 1}/${questions.length}`;

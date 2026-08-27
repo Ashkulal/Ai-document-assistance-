@@ -113,58 +113,79 @@ def interview():
     resume_section = f"\n\nRESUME:\n{resume_content}" if resume_content else ""
 
     prompts = {
-        "aptitude": f"""You are a sharp interviewer. Read the candidate's resume below.
+        "aptitude": f"""You are a sharp interviewer. The candidate uploaded this resume:
 {resume_section}
 
-Based on their EDUCATION and FIELD, generate 10 aptitude questions:
-- Match their degree level (B.Tech/MBA/etc)
-- Include logical reasoning, numerical, pattern-based questions
-- 3 Easy, 4 Medium, 3 Hard
+Based on their EDUCATION and FIELD, generate 10 aptitude questions.
+Match their degree level. Include logical reasoning, numerical ability, pattern-based questions.
 
-Format: number. question
-Answer each question yourself in (parentheses) after the question.""",
+IMPORTANT: Format each question as JUST the question text. Do NOT include answers in parentheses.
+Do NOT use bullet points or dashes. Use numbered list only.
 
-        "technical": f"""You are a ruthless technical interviewer. Read the candidate's resume below.
+Example format:
+1. What is 15% of 200?
+2. If A is taller than B and B is taller than C, who is the shortest?
+3. Find the next number in the series: 2, 6, 12, 20, ?
+
+Generate exactly 10 questions like this.""",
+
+        "technical": f"""You are a ruthless technical interviewer. The candidate uploaded this resume:
 {resume_section}
 
-Look at EVERY skill, project, and technology listed. Now grill them:
+Look at EVERY skill, project, and technology listed. Now grill them with 10 questions.
 
-1. Ask about each major skill/project listed — deep not surface level
-2. "You mention X in your resume — how does it work under the hood?"
-3. "Your project uses Y — why did you choose Y over alternatives?"
-4. "If Z breaks in production, how do you debug it?"
-5. Mix coding problems related to their tech stack
-6. Ask system design based on their project scale
-7. 3 Easy, 4 Medium, 3 Hard
+Ask about each major skill/project — deep not surface level.
+"You mention X — how does it work under the hood?"
+"Your project uses Y — why Y over alternatives?"
+"If Z breaks in production, how do you debug it?"
+Mix coding problems related to their tech stack.
 
-Generate 10 questions. Format: number. question""",
+IMPORTANT: Format each question as JUST the question text. Do NOT include answers.
+Do NOT use bullet points or dashes. Use numbered list only.
 
-        "hr": f"""You are a sharp HR interviewer. Read the candidate's resume below.
+Example format:
+1. You listed React in your skills — explain how the virtual DOM diffing algorithm works
+2. Your project uses MongoDB — why did you choose it over PostgreSQL?
+3. Write a function to find the longest substring without repeating characters
+
+Generate exactly 10 questions like this.""",
+
+        "hr": f"""You are a sharp HR interviewer. The candidate uploaded this resume:
 {resume_section}
 
-Look at their CAREER PATH, education gaps, job switches, achievements. Now ask:
+Look at their CAREER PATH, education, job history, achievements. Now ask 10 questions.
 
-1. Questions that probe their actual experiences listed
-2. "I see you worked at [company] — tell me about your biggest challenge there"
-3. "You studied [degree] — why that field?"
-4. Questions about gaps, transitions, choices visible in the resume
-5. Strengths/weaknesses related to THEIR profile
-6. Where they see themselves going based on THEIR trajectory
+Probe their actual experiences. Ask about gaps, transitions, choices visible in the resume.
+"I see you worked at [company] — tell me about your biggest challenge there"
+"You studied [degree] — why that field?"
 
-Generate 10 questions. Format: number. question""",
+IMPORTANT: Format each question as JUST the question text. Do NOT use bullet points or dashes. Use numbered list only.
 
-        "behavioral": f"""You are a behavioral interview expert. Read the candidate's resume below.
+Example format:
+1. Tell me about yourself and what brought you to this career path
+2. I notice you have a gap between 2022 and 2023 — what were you doing during that time?
+3. Why should we hire you over other candidates?
+
+Generate exactly 10 questions like this.""",
+
+        "behavioral": f"""You are a behavioral interview expert. The candidate uploaded this resume:
 {resume_section}
 
-Look at their PROJECTS, TEAM WORK, LEADERSHIP, EXTRACURRICULARS. Now ask STAR questions about THEIR actual experiences:
+Look at their PROJECTS, TEAM WORK, LEADERSHIP, EXTRACURRICULARS. Now ask 10 STAR questions.
 
-1. "Tell me about a time during [their specific project] when things went wrong"
-2. "Describe your role in [their team project]"
-3. "Give an example of how you handled [challenge relevant to their field]"
-4. "Tell me about a disagreement with a teammate during [their project]"
-5. Questions drawn from THEIR activities and experiences
+Draw from THEIR actual experiences.
+"Tell me about a time during [their specific project] when things went wrong"
+"Describe your role in [their team project]"
+"Give an example of how you handled [challenge relevant to their field]"
 
-Generate 10 questions. Format: number. question""",
+IMPORTANT: Format each question as JUST the question text. Do NOT use bullet points or dashes. Use numbered list only.
+
+Example format:
+1. Tell me about a time you had to learn a new technology quickly for a project
+2. Describe a situation where you had a disagreement with a teammate — how did you resolve it?
+3. Give an example of a project where you had to manage competing deadlines
+
+Generate exactly 10 questions like this.""",
     }
 
     prompt = prompts.get(round_type, prompts["technical"])
