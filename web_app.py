@@ -107,46 +107,33 @@ def generate_mcq():
     resume_section = f"\n\nRESUME:\n{resume_content}" if resume_content else ""
 
     if round_type == "aptitude":
-        prompt = f"""Generate exactly {count} aptitude MCQ questions for a job interview.
+        prompt = f"""Generate 30 aptitude multiple choice questions for a job interview.
+Match the candidate's education from this resume:
 {resume_section}
 
-Match the candidate's education level from the resume.
-Include: logical reasoning, numerical ability, pattern recognition, data interpretation, probability.
+Include: logical reasoning, numerical ability, pattern recognition, data interpretation.
 
-IMPORTANT FORMAT - follow EXACTLY:
-Return a JSON array. Each element is an object with these EXACT keys:
-"q": "the question text",
-"A": "option A text",
-"B": "option B text",
-"C": "option C text",
-"D": "option D text",
-"answer": "A" or "B" or "C" or "D",
-"explanation": "one line explanation"
+Return ONLY a valid JSON array. Each item has: q, A, B, C, D, answer, explanation.
+answer is one letter: A, B, C, or D.
 
-Return ONLY the JSON array, no other text, no markdown, no code blocks.
 Example:
-[{{"q": "What is 15% of 200?", "A": "25", "B": "30", "C": "35", "D": "40", "answer": "B", "explanation": "15% of 200 = 0.15 x 200 = 30"}}]"""
+[{{"q":"What is 15% of 200?","A":"25","B":"30","C":"35","D":"40","answer":"B","explanation":"15x2=30"}}]
+
+Return the JSON array only. No other text."""
 
     elif round_type == "technical":
-        prompt = f"""Generate exactly {count} technical MCQ questions based on this candidate's resume.
+        prompt = f"""Generate 30 technical multiple choice questions based on this resume:
 {resume_section}
 
-Look at the skills, technologies, and projects in the resume.
-Cover: programming languages, data structures, algorithms, OS, networking, databases, and domain-specific topics from their resume.
+Cover programming, data structures, algorithms, databases, OS, networking, and skills from the resume.
 
-IMPORTANT FORMAT - follow EXACTLY:
-Return a JSON array. Each element is an object with these EXACT keys:
-"q": "the question text",
-"A": "option A text",
-"B": "option B text",
-"C": "option C text",
-"D": "option D text",
-"answer": "A" or "B" or "C" or "D",
-"explanation": "one line explanation"
+Return ONLY a valid JSON array. Each item has: q, A, B, C, D, answer, explanation.
+answer is one letter: A, B, C, or D.
 
-Return ONLY the JSON array, no other text, no markdown, no code blocks.
 Example:
-[{{"q": "What is the time complexity of binary search?", "A": "O(n)", "B": "O(log n)", "C": "O(n log n)", "D": "O(1)", "answer": "B", "explanation": "Binary search halves the search space each step"}}]"""
+[{{"q":"Time complexity of binary search?","A":"O(n)","B":"O(log n)","C":"O(n log n)","D":"O(1)","answer":"B","explanation":"Halves search space each step"}}]
+
+Return the JSON array only. No other text."""
 
     else:
         return jsonify({"error": "Invalid round type"}), 400
@@ -154,12 +141,16 @@ Example:
     try:
         result = assistant.ask(prompt)
         raw = result["answer"].strip()
-        if raw.startswith("```"):
-            raw = raw.split("\n", 1)[1]
-            if raw.endswith("```"):
-                raw = raw[:-3]
-            raw = raw.strip()
-        questions = json.loads(raw)
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        if raw.startswith("["):
+            questions = json.loads(raw)
+        else:
+            start = raw.find("[")
+            end = raw.rfind("]") + 1
+            if start >= 0 and end > start:
+                questions = json.loads(raw[start:end])
+            else:
+                return jsonify({"error": "Model did not return valid JSON. Try again."}), 500
         return jsonify({"questions": questions})
     except json.JSONDecodeError:
         return jsonify({"error": "Failed to parse questions. Try again."}), 500
@@ -178,31 +169,29 @@ def generate_coding():
 
     resume_section = f"\n\nRESUME:\n{resume_content}" if resume_content else ""
 
-    prompt = f"""Generate a coding problem based on this candidate's resume and skills.
+    prompt = f"""Generate a coding problem for a candidate with these skills:
 {resume_section}
 
 Difficulty: {difficulty}
 
-Return a JSON object with these EXACT keys:
-"title": "problem title",
-"description": "problem description with clear input/output format",
-"examples": [{{"input": "example input", "output": "example output", "explanation": "how"}}],
-"constraints": "list of constraints",
-"test_cases": [{{"input": "...", "output": "..."}}, ...],
-"starter_code": "function signature or starter code in the candidate's primary language",
-"language": "python" or "javascript" or "java" based on their main language
+Return ONLY a valid JSON object:
+{{"title":"problem title","description":"problem description with input/output format","examples":[{{"input":"ex input","output":"ex output","explanation":"how"}}],"constraints":"constraints","test_cases":[{{"input":"test1","output":"result1"}},{{"input":"test2","output":"result2"}}],"starter_code":"function signature","language":"python"}}
 
-Return ONLY the JSON object, no markdown, no code blocks."""
+Return JSON only. No markdown, no other text."""
 
     try:
         result = assistant.ask(prompt)
         raw = result["answer"].strip()
-        if raw.startswith("```"):
-            raw = raw.split("\n", 1)[1]
-            if raw.endswith("```"):
-                raw = raw[:-3]
-            raw = raw.strip()
-        problem = json.loads(raw)
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        if raw.startswith("{"):
+            problem = json.loads(raw)
+        else:
+            start = raw.find("{")
+            end = raw.rfind("}") + 1
+            if start >= 0 and end > start:
+                problem = json.loads(raw[start:end])
+            else:
+                return jsonify({"error": "Model did not return valid JSON. Try again."}), 500
         return jsonify({"problem": problem})
     except json.JSONDecodeError:
         return jsonify({"error": "Failed to parse problem. Try again."}), 500
