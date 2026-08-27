@@ -31,7 +31,7 @@ class DocumentAssistant:
             raise ValueError("API key is required. Set OPENAI_API_KEY in .env or pass api_key.")
         
         self.base_url = base_url or os.getenv("OPENAI_BASE_URL")
-        self.llm = ChatOpenAI(api_key=self.api_key, model_name=model_name, temperature=0, base_url=self.base_url)
+        self.llm = ChatOpenAI(api_key=self.api_key, model_name=model_name, temperature=0, base_url=self.base_url, max_tokens=2048)
         self.vector_store = None
         self.qa_chain = None
 
