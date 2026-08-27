@@ -220,7 +220,6 @@ async function startRound(roundType) {
     }
 
     currentRound = roundType;
-    document.getElementById("difficultySelector").style.display = "none";
     document.getElementById("activeRound").style.display = "none";
 
     const welcome = chatMessages.querySelector(".welcome-message");
@@ -264,62 +263,6 @@ async function startRound(roundType) {
 
         showActiveRound();
         showQuestion(0);
-
-    } catch (err) {
-        typing.remove();
-        addMessage("error", err.message);
-    }
-}
-
-// Generate Questions
-async function generateQuestions(difficulty) {
-    document.getElementById("difficultySelector").style.display = "none";
-
-    const welcome = chatMessages.querySelector(".welcome-message");
-    if (welcome) welcome.remove();
-
-    addMessage("system", `Starting ${currentRound.charAt(0).toUpperCase() + currentRound.slice(1)} Round — ${difficulty} level`);
-
-    const typing = addTyping();
-
-    try {
-        const res = await fetch("/api/interview", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ round_type: currentRound, difficulty }),
-        });
-        const data = await res.json();
-
-        typing.remove();
-
-        if (data.error) {
-            addMessage("error", data.error);
-            return;
-        }
-
-        // Parse questions
-        questions = parseQuestions(data.answer);
-        currentQuestionIndex = 0;
-        totalScore = 0;
-        totalAnswered = 0;
-
-        if (questions.length === 0) {
-            addMessage("error", "No questions generated. Try again.");
-            return;
-        }
-
-        // Show round info
-        showActiveRound();
-
-        // Show intro message with question count
-        const introMsg = document.createElement("div");
-        introMsg.className = "message assistant";
-        introMsg.innerHTML = `<strong>${questions.length} questions</strong> generated based on your resume. Let's begin!<br><br>Answer each question and press Enter or click Send.`;
-        chatMessages.appendChild(introMsg);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-
-        // Show first question after delay
-        setTimeout(() => showQuestion(0), 1000);
 
     } catch (err) {
         typing.remove();
