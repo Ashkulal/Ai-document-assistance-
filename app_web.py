@@ -3,19 +3,60 @@ import os
 import tempfile
 from assistant import DocumentAssistant
 
-st.set_page_config(page_title="AI Document Assistant", page_icon="📄", layout="wide")
-st.title("AI Document Assistant")
+st.set_page_config(
+    page_title="AI Document Assistant",
+    page_icon="🧠",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+st.markdown("""
+<style>
+    .stApp { background: #0e1117; }
+    .block-container { padding-top: 2rem; }
+    div[data-testid="stChatMessage"] {
+        border: 1px solid #333;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    div[data-testid="stSidebar"] {
+        background: #1a1d24;
+        border-right: 1px solid #333;
+    }
+    .stButton > button {
+        width: 100%;
+        border-radius: 8px;
+        font-weight: 600;
+    }
+    h1 { color: #fff !important; }
+    h3 { color: #ccc !important; }
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .status-ready { background: #1a4731; color: #4ade80; }
+    .status-empty { background: #3b1c1c; color: #f87171; }
+</style>
+""", unsafe_allow_html=True)
 
 if "assistant" not in st.session_state:
     st.session_state.assistant = None
 if "history" not in st.session_state:
     st.session_state.history = []
+if "doc_count" not in st.session_state:
+    st.session_state.doc_count = 0
 
 with st.sidebar:
-    st.header("Settings")
-    api_key = st.text_input("API Key", type="password")
-    base_url = st.text_input("Base URL (optional)", value="https://openrouter.ai/api/v1")
-    model = st.selectbox("Model", [
+    st.markdown("## ⚙️ Configuration")
+
+    api_key = st.text_input("🔑 API Key", type="password", placeholder="sk-or-v1-...")
+    base_url = st.text_input("🌐 Base URL", value="https://openrouter.ai/api/v1")
+
+    model = st.selectbox("🤖 Model", [
         "nvidia/nemotron-3-ultra-550b-a55b:free",
         "nvidia/nemotron-3.5-lightning:free",
         "nvidia/nemotron-3-super-120b-a12b:free",
@@ -38,16 +79,23 @@ with st.sidebar:
         "gpt-3.5-turbo",
         "gpt-4",
     ])
-    
-    st.header("Upload Documents")
+
+    st.divider()
+    st.markdown("## 📁 Documents")
+
     uploaded_files = st.file_uploader(
-        "Drag & drop files here",
+        "Drop files here",
         type=["pdf", "txt", "csv", "docx"],
         accept_multiple_files=True,
+        label_visibility="collapsed",
     )
-    
-    if uploaded_files and st.button("Process Documents"):
-        with st.spinner("Processing..."):
+
+    if uploaded_files:
+        file_names = [f.name for f in uploaded_files]
+        st.caption(f"{len(uploaded_files)} file(s): {', '.join(file_names[:3])}{'...' if len(file_names) > 3 else ''}")
+
+    if st.button("🚀 Process Documents", type="primary", disabled=not uploaded_files):
+        with st.spinner("Indexing documents..."):
             temp_dir = tempfile.mkdtemp()
             file_paths = []
             for f in uploaded_files:
@@ -55,37 +103,50 @@ with st.sidebar:
                 with open(path, "wb") as file:
                     file.write(f.getvalue())
                 file_paths.append(path)
-            
+
             try:
                 st.session_state.assistant = DocumentAssistant(api_key=api_key, model_name=model, base_url=base_url)
                 num_chunks = st.session_state.assistant.ingest_documents(file_paths)
-                st.success(f"Loaded {len(uploaded_files)} files into {num_chunks} chunks")
+                st.session_state.doc_count = len(uploaded_files)
+                st.success(f"✅ Indexed {num_chunks} chunks from {len(uploaded_files)} file(s)")
             except Exception as e:
-                st.error(f"Error: {e}")
+                st.error(f"❌ {e}")
 
-st.header("Ask a Question")
+    st.divider()
+
+    if st.session_state.assistant:
+        st.markdown('<span class="status-badge status-ready">● Ready</span>', unsafe_allow_html=True)
+        st.caption(f"Model: `{model.split('/')[-1]}`")
+        if st.button("🗑️ Clear Chat"):
+            st.session_state.history = []
+            st.rerun()
+    else:
+        st.markdown('<span class="status-badge status-empty">● No documents loaded</span>', unsafe_allow_html=True)
+
+st.markdown("## 🧠 AI Document Assistant")
+st.caption("Upload documents and ask questions — powered by LangChain + OpenAI")
 
 for role, msg in st.session_state.history:
-    with st.chat_message(role):
-        st.write(msg)
+    with st.chat_message(role, avatar="🧑" if role == "user" else "🤖"):
+        st.markdown(msg)
 
-if question := st.chat_input("Ask about your documents..."):
+if question := st.chat_input("Ask anything about your documents..."):
     if not st.session_state.assistant:
-        st.warning("Upload and process documents first.")
+        st.error("Upload and process documents first.")
     else:
         st.session_state.history.append(("user", question))
-        with st.chat_message("user"):
-            st.write(question)
-        
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
+        with st.chat_message("user", avatar="🧑"):
+            st.markdown(question)
+
+        with st.chat_message("assistant", avatar="🤖"):
+            with st.spinner("Analyzing..."):
                 result = st.session_state.assistant.ask(question)
                 answer = result["answer"]
-                st.write(answer)
-                
+                st.markdown(answer)
+
                 if result["sources"]:
-                    with st.expander("Sources"):
+                    with st.expander("📎 Sources"):
                         for src in result["sources"]:
-                            st.write(f"- {src.get('source', 'unknown')}")
-        
+                            st.code(src.get("source", "unknown"), language=None)
+
         st.session_state.history.append(("assistant", answer))
