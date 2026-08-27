@@ -1,4 +1,5 @@
 import os
+import re
 from langchain_community.document_loaders import (
     PyPDFLoader,
     TextLoader,
@@ -18,6 +19,13 @@ SUPPORTED_EXTENSIONS = {
 }
 
 
+def clean_text(text: str) -> str:
+    """Remove emojis and non-ASCII characters from text."""
+    text = re.sub(r'[^\x00-\x7F]+', ' ', text)
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
+
+
 def load_documents(file_paths: list[str]) -> list:
     """Load documents from supported file types."""
     documents = []
@@ -27,7 +35,10 @@ def load_documents(file_paths: list[str]) -> list:
             print(f"Skipping unsupported file: {file_path}")
             continue
         loader = SUPPORTED_EXTENSIONS[ext](file_path)
-        documents.extend(loader.load())
+        docs = loader.load()
+        for doc in docs:
+            doc.page_content = clean_text(doc.page_content)
+        documents.extend(docs)
     return documents
 
 
