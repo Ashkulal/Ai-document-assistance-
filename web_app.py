@@ -208,10 +208,6 @@ Be fair but strict. Score based on accuracy, completeness, and clarity."""
         return jsonify({"error": str(e)}), 500
 
 
-if __name__ == "__main__":
-    app.run(debug=True, port=5000)
-
-
 @app.route("/api/models", methods=["POST"])
 def get_models():
     data = request.json
@@ -241,3 +237,7 @@ def get_models():
         return jsonify({"models": models})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)
