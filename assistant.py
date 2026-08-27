@@ -70,12 +70,22 @@ class DocumentAssistant:
         """Ask a question and get an answer with sources."""
         if not self.qa_chain:
             raise ValueError("No documents loaded. Call ingest_documents() or load_from_store() first.")
-        
-        result = self.qa_chain.invoke({"query": question})
-        return {
-            "answer": result["result"],
-            "sources": [doc.metadata for doc in result.get("source_documents", [])],
-        }
+
+        max_tokens = 4096
+        while max_tokens >= 256:
+            try:
+                self.llm.max_tokens = max_tokens
+                result = self.qa_chain.invoke({"query": question})
+                return {
+                    "answer": result["result"],
+                    "sources": [doc.metadata for doc in result.get("source_documents", [])],
+                }
+            except Exception as e:
+                if "402" in str(e) or "max_tokens" in str(e).lower():
+                    max_tokens = max_tokens // 2
+                    continue
+                raise
+        raise ValueError("Insufficient credits. Please add credits to your OpenRouter account.")
 
 
 def main():
