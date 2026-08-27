@@ -1,16 +1,9 @@
 import os
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
-from langchain_classic.chains import RetrievalQA
 from langchain_core.prompts import PromptTemplate
 
-from document_loader import (
-    load_documents,
-    split_documents,
-    create_vector_store,
-    save_vector_store,
-    load_vector_store,
-)
+from document_loader import load_documents, split_documents, get_full_text
 
 load_dotenv()
 
@@ -28,114 +21,51 @@ class DocumentAssistant:
     def __init__(self, api_key: str = None, model_name: str = "gpt-3.5-turbo", base_url: str = None):
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not self.api_key:
-            raise ValueError("API key is required. Set OPENAI_API_KEY in .env or pass api_key.")
-        
+            raise ValueError("API key is required.")
         self.base_url = base_url or os.getenv("OPENAI_BASE_URL")
         self.llm = ChatOpenAI(api_key=self.api_key, model_name=model_name, temperature=0, base_url=self.base_url, max_tokens=2048)
-        self.vector_store = None
-        self.qa_chain = None
+        self.documents = []
+        self.chunks = []
+        self.full_text = ""
 
-    def ingest_documents(self, file_paths: list[str], save_path: str = None) -> int:
-        """Load, split, and index documents. Returns number of chunks."""
-        documents = load_documents(file_paths)
-        if not documents:
-            raise ValueError("No documents were loaded. Check file paths and formats.")
-        
-        chunks = split_documents(documents)
-        self.vector_store = create_vector_store(chunks, self.api_key, self.base_url)
-        
-        if save_path:
-            save_vector_store(self.vector_store, save_path)
-        
-        self._setup_qa_chain()
-        return len(chunks)
+    def ingest_documents(self, file_paths: list, save_path: str = None) -> int:
+        """Load and index documents."""
+        self.documents = load_documents(file_paths)
+        if not self.documents:
+            raise ValueError("No documents were loaded.")
+        self.chunks = split_documents(self.documents)
+        self.full_text = get_full_text(self.documents)
+        return len(self.chunks)
 
-    def load_from_store(self, store_path: str) -> None:
-        """Load an existing vector store."""
-        self.vector_store = load_vector_store(store_path, self.api_key)
-        self._setup_qa_chain()
-
-    def _setup_qa_chain(self) -> None:
-        """Set up the Q&A retrieval chain."""
-        prompt = PromptTemplate(template=PROMPT_TEMPLATE, input_variables=["context", "question"])
-        self.qa_chain = RetrievalQA.from_chain_type(
-            llm=self.llm,
-            chain_type="stuff",
-            retriever=self.vector_store.as_retriever(search_kwargs={"k": 3}),
-            return_source_documents=True,
-            chain_type_kwargs={"prompt": prompt},
-        )
+    def _get_relevant_context(self, question: str) -> str:
+        """Simple keyword-based context retrieval."""
+        q_words = set(question.lower().split())
+        scored = []
+        for chunk in self.chunks:
+            text = chunk.page_content.lower()
+            score = sum(1 for w in q_words if w in text)
+            scored.append((score, chunk.page_content))
+        scored.sort(key=lambda x: x[0], reverse=True)
+        context = "\n\n".join(c for _, c in scored[:5])
+        return context if context else self.full_text[:3000]
 
     def ask(self, question: str) -> dict:
-        """Ask a question and get an answer with sources."""
-        if not self.qa_chain:
-            raise ValueError("No documents loaded. Call ingest_documents() or load_from_store() first.")
+        """Ask a question and get an answer."""
+        if not self.documents:
+            raise ValueError("No documents loaded.")
 
         max_tokens = 4096
+        context = self._get_relevant_context(question)
+        prompt = PROMPT_TEMPLATE.format(context=context, question=question)
+
         while max_tokens >= 256:
             try:
                 self.llm.max_tokens = max_tokens
-                result = self.qa_chain.invoke({"query": question})
-                return {
-                    "answer": result["result"],
-                    "sources": [doc.metadata for doc in result.get("source_documents", [])],
-                }
+                result = self.llm.invoke(prompt)
+                return {"answer": result.content, "sources": []}
             except Exception as e:
                 if "402" in str(e) or "max_tokens" in str(e).lower():
                     max_tokens = max_tokens // 2
                     continue
                 raise
-        raise ValueError("Insufficient credits. Please add credits to your OpenRouter account.")
-
-
-def main():
-    assistant = DocumentAssistant()
-
-    print("=== AI Document Assistant ===")
-    print("Commands:")
-    print("  load <file1> <file2> ...  - Load documents")
-    print("  ask <question>            - Ask a question")
-    print("  quit                      - Exit")
-    print()
-
-    while True:
-        try:
-            user_input = input("You: ").strip()
-        except (EOFError, KeyboardInterrupt):
-            print("\nGoodbye!")
-            break
-
-        if not user_input:
-            continue
-
-        if user_input.lower() == "quit":
-            print("Goodbye!")
-            break
-
-        if user_input.lower().startswith("load "):
-            files = user_input[5:].split()
-            try:
-                num_chunks = assistant.ingest_documents(files)
-                print(f"Loaded {len(files)} files into {num_chunks} chunks.\n")
-            except Exception as e:
-                print(f"Error loading documents: {e}\n")
-
-        elif user_input.lower().startswith("ask "):
-            question = user_input[4:]
-            try:
-                result = assistant.ask(question)
-                print(f"\nAnswer: {result['answer']}\n")
-                if result["sources"]:
-                    print("Sources:")
-                    for src in result["sources"]:
-                        print(f"  - {src.get('source', 'unknown')}")
-                    print()
-            except Exception as e:
-                print(f"Error: {e}\n")
-
-        else:
-            print("Unknown command. Use 'load', 'ask', or 'quit'.\n")
-
-
-if __name__ == "__main__":
-    main()
+        raise ValueError("Insufficient credits.")
