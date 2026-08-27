@@ -7,6 +7,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-EXPOSE 10000
+EXPOSE 1000
 
-CMD gunicorn web_app:app --bind 0.0.0.0:10000 --workers 1 --timeout 120
+CMD gunicorn web_app:app --bind 0.0.0.0:1000 --workers 1 --timeout 120
