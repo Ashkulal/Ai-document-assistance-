@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  web:
+    build: .
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      - ./documents:/app/documents
+
+  gui:
+    build: .
+    environment:
+      - DISPLAY=${DISPLAY}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    command: python app_gui.py
