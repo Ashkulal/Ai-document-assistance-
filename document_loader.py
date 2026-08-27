@@ -7,8 +7,8 @@ from langchain_community.document_loaders import (
     Docx2txtLoader,
 )
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 
 SUPPORTED_EXTENSIONS = {
@@ -57,7 +57,7 @@ def split_documents(documents: list, chunk_size: int = 1000, chunk_overlap: int 
 
 def create_vector_store(chunks: list, api_key: str = None) -> FAISS:
     """Create a FAISS vector store from document chunks."""
-    embeddings = OpenAIEmbeddings(api_key=api_key)
+    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     vector_store = FAISS.from_documents(chunks, embeddings)
     return vector_store
 
@@ -69,5 +69,5 @@ def save_vector_store(vector_store: FAISS, path: str) -> None:
 
 def load_vector_store(path: str, api_key: str = None) -> FAISS:
     """Load vector store from disk."""
-    embeddings = OpenAIEmbeddings(api_key=api_key)
+    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     return FAISS.load_local(path, embeddings, allow_dangerous_deserialization=True)
