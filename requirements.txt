@@ -8,3 +8,4 @@ streamlit>=1.30.0
 pytest>=7.0.0
 docx2txt>=0.8
 pypdf>=3.0.0
+flask>=3.0.0
