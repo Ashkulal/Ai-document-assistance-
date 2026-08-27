@@ -13,8 +13,28 @@ if "history" not in st.session_state:
 
 with st.sidebar:
     st.header("Settings")
-    api_key = st.text_input("OpenAI API Key", type="password")
-    model = st.selectbox("Model", ["gpt-3.5-turbo", "gpt-4", "gpt-4-turbo"])
+    api_key = st.text_input("API Key", type="password")
+    base_url = st.text_input("Base URL (optional)", value="https://openrouter.ai/api/v1")
+    model = st.selectbox("Model", [
+        "nvidia/nemotron-3-ultra:free",
+        "nvidia/nemotron-3.5-lightning:free",
+        "nvidia/nemotron-3-super:free",
+        "nvidia/nemotron-3-nano-omni:free",
+        "minimax/minimax-m3:free",
+        "minimax/minimax-m2.7:free",
+        "cohere/north-mini-code:free",
+        "poolside/laguna-s-2.1:free",
+        "poolside/laguna-xs-2.1:free",
+        "dots-studio/dots3-note-preview:free",
+        "thinkingmachines/inkling:free",
+        "thinkingmachines/inkling-small:free",
+        "z-ai/glm-5.2:free",
+        "liquid/lfm2.5-2.6b:free",
+        "google/gemini-2.0-flash-001:free",
+        "gpt-3.5-turbo",
+        "gpt-4",
+        "gpt-4-turbo",
+    ])
     
     st.header("Upload Documents")
     uploaded_files = st.file_uploader(
@@ -34,7 +54,7 @@ with st.sidebar:
                 file_paths.append(path)
             
             try:
-                st.session_state.assistant = DocumentAssistant(api_key=api_key, model_name=model)
+                st.session_state.assistant = DocumentAssistant(api_key=api_key, model_name=model, base_url=base_url)
                 num_chunks = st.session_state.assistant.ingest_documents(file_paths)
                 st.success(f"Loaded {len(uploaded_files)} files into {num_chunks} chunks")
             except Exception as e:
