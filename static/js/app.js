@@ -363,7 +363,14 @@ function endRound() {
 function addMessage(type, text) {
     const msg = document.createElement("div");
     msg.className = `message ${type}`;
-    msg.textContent = text;
+    if (type === "system") {
+        msg.innerHTML = `<em>${text}</em>`;
+        msg.style.textAlign = "center";
+        msg.style.color = "var(--text-secondary)";
+        msg.style.maxWidth = "100%";
+    } else {
+        msg.textContent = text;
+    }
     chatMessages.appendChild(msg);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }

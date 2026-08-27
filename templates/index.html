@@ -23,6 +23,9 @@
 
                 <label>Model</label>
                 <select id="modelSelect">
+                    <option value="google/gemma-4-31b-it:free">Gemma 4 31B — Google (262K)</option>
+                    <option value="z-ai/glm-5.2:free">GLM 5.2 — Z.ai (256K)</option>
+                    <option value="openai/gpt-oss-20b:free">GPT-OSS 20B — OpenAI (131K)</option>
                     {% for m in models %}
                     <option value="{{ m.id }}">{{ m.name }} — {{ m.provider }}</option>
                     {% endfor %}
