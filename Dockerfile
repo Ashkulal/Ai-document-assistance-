@@ -7,6 +7,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-EXPOSE 8501
+EXPOSE 10000
 
-CMD ["streamlit", "run", "app_web.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["gunicorn", "web_app:app", "--bind", "0.0.0.0:10000", "--workers", "2", "--timeout", "120"]
