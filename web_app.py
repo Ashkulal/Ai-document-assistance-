@@ -1,5 +1,6 @@
 import os
 import tempfile
+import requests
 from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
@@ -209,3 +210,34 @@ Be fair but strict. Score based on accuracy, completeness, and clarity."""
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
+
+
+@app.route("/api/models", methods=["POST"])
+def get_models():
+    data = request.json
+    base_url = data.get("base_url", "https://openrouter.ai/api/v1")
+    api_key = data.get("api_key", "")
+
+    try:
+        url = base_url.rstrip("/") + "/models"
+        headers = {}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+
+        res = requests.get(url, headers=headers, timeout=10)
+        if res.status_code != 200:
+            return jsonify({"error": f"API returned status {res.status_code}"}), 400
+
+        data = res.json()
+        models = []
+        for m in data.get("data", []):
+            model_id = m.get("id", "")
+            name = m.get("name", model_id)
+            ctx = m.get("context_length", 0)
+            ctx_str = f"{ctx // 1024}K" if ctx >= 1024 else str(ctx)
+            models.append({"id": model_id, "name": name, "ctx": ctx_str})
+
+        models.sort(key=lambda x: x["name"])
+        return jsonify({"models": models})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

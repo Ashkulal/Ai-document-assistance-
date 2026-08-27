@@ -20,6 +20,44 @@ const sendBtn = document.getElementById("sendBtn");
 const scoreDisplay = document.getElementById("scoreDisplay");
 const scoreValue = document.getElementById("scoreValue");
 
+// Auto-fetch models on page load
+fetchModels();
+
+document.getElementById("baseUrl").addEventListener("change", fetchModels);
+document.getElementById("apiKey").addEventListener("change", fetchModels);
+
+async function fetchModels() {
+    const baseUrl = document.getElementById("baseUrl").value;
+    const apiKey = document.getElementById("apiKey").value;
+    const modelSelect = document.getElementById("modelSelect");
+
+    modelSelect.innerHTML = '<option value="">Loading models...</option>';
+
+    try {
+        const res = await fetch("/api/models", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ base_url: baseUrl, api_key: apiKey }),
+        });
+        const data = await res.json();
+
+        if (data.error) {
+            modelSelect.innerHTML = `<option value="">${data.error}</option>`;
+            return;
+        }
+
+        modelSelect.innerHTML = "";
+        data.models.forEach((m) => {
+            const opt = document.createElement("option");
+            opt.value = m.id;
+            opt.textContent = `${m.name} (${m.ctx})`;
+            modelSelect.appendChild(opt);
+        });
+    } catch (err) {
+        modelSelect.innerHTML = `<option value="">Failed to load: ${err.message}</option>`;
+    }
+}
+
 // Voice Recognition Setup
 if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
