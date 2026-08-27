@@ -95,6 +95,37 @@ body {
     margin-top: 0;
 }
 
+.input-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.input-row input {
+    flex: 1;
+}
+
+.fetch-btn {
+    padding: 0.6rem 1rem;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+
+.fetch-btn:hover {
+    background: var(--accent-hover);
+}
+
+.fetch-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
 input, select, textarea {
     width: 100%;
     padding: 0.6rem 0.75rem;

@@ -20,18 +20,29 @@ const sendBtn = document.getElementById("sendBtn");
 const scoreDisplay = document.getElementById("scoreDisplay");
 const scoreValue = document.getElementById("scoreValue");
 
-// Auto-fetch models on page load
-fetchModels();
-
-document.getElementById("baseUrl").addEventListener("change", fetchModels);
-document.getElementById("apiKey").addEventListener("change", fetchModels);
+// Auto-fetch models on API key enter
+document.getElementById("apiKey").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") fetchModels();
+});
 
 async function fetchModels() {
     const baseUrl = document.getElementById("baseUrl").value;
     const apiKey = document.getElementById("apiKey").value;
     const modelSelect = document.getElementById("modelSelect");
+    const modelStatus = document.getElementById("modelStatus");
+    const fetchBtn = document.getElementById("fetchBtn");
 
-    modelSelect.innerHTML = '<option value="">Loading models...</option>';
+    if (!apiKey) {
+        modelStatus.className = "status error";
+        modelStatus.textContent = "Enter API key first";
+        return;
+    }
+
+    fetchBtn.disabled = true;
+    fetchBtn.textContent = "Loading...";
+    modelStatus.className = "status";
+    modelStatus.textContent = "Fetching models...";
+    modelSelect.innerHTML = '<option value="">Loading...</option>';
 
     try {
         const res = await fetch("/api/models", {
@@ -42,7 +53,9 @@ async function fetchModels() {
         const data = await res.json();
 
         if (data.error) {
-            modelSelect.innerHTML = `<option value="">${data.error}</option>`;
+            modelSelect.innerHTML = '<option value="">Failed to load</option>';
+            modelStatus.className = "status error";
+            modelStatus.textContent = data.error;
             return;
         }
 
@@ -53,9 +66,17 @@ async function fetchModels() {
             opt.textContent = `${m.name} (${m.ctx})`;
             modelSelect.appendChild(opt);
         });
+
+        modelStatus.className = "status success";
+        modelStatus.textContent = `${data.models.length} models loaded`;
     } catch (err) {
-        modelSelect.innerHTML = `<option value="">Failed to load: ${err.message}</option>`;
+        modelSelect.innerHTML = '<option value="">Failed to load</option>';
+        modelStatus.className = "status error";
+        modelStatus.textContent = err.message;
     }
+
+    fetchBtn.disabled = false;
+    fetchBtn.textContent = "Fetch";
 }
 
 // Voice Recognition Setup
