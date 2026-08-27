@@ -21,7 +21,7 @@ SUPPORTED_EXTENSIONS = {
 
 def clean_text(text: str) -> str:
     """Remove emojis and non-ASCII characters from text."""
-    text = re.sub(r'[^\x00-\x7F]+', ' ', text)
+    text = text.encode('ascii', 'ignore').decode('ascii')
     text = re.sub(r'\s+', ' ', text)
     return text.strip()
 
@@ -38,6 +38,9 @@ def load_documents(file_paths: list[str]) -> list:
         docs = loader.load()
         for doc in docs:
             doc.page_content = clean_text(doc.page_content)
+            for key in doc.metadata:
+                if isinstance(doc.metadata[key], str):
+                    doc.metadata[key] = clean_text(doc.metadata[key])
         documents.extend(docs)
     return documents
 
