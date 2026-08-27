@@ -42,7 +42,7 @@ class DocumentAssistant:
             raise ValueError("No documents were loaded. Check file paths and formats.")
         
         chunks = split_documents(documents)
-        self.vector_store = create_vector_store(chunks, self.api_key)
+        self.vector_store = create_vector_store(chunks, self.api_key, self.base_url)
         
         if save_path:
             save_vector_store(self.vector_store, save_path)

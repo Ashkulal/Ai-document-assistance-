@@ -8,7 +8,7 @@ from langchain_community.document_loaders import (
 )
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_openai import OpenAIEmbeddings
 
 
 SUPPORTED_EXTENSIONS = {
@@ -55,9 +55,12 @@ def split_documents(documents: list, chunk_size: int = 1000, chunk_overlap: int 
     return text_splitter.split_documents(documents)
 
 
-def create_vector_store(chunks: list, api_key: str = None) -> FAISS:
+def create_vector_store(chunks: list, api_key: str = None, base_url: str = None) -> FAISS:
     """Create a FAISS vector store from document chunks."""
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    kwargs = {"api_key": api_key}
+    if base_url:
+        kwargs["base_url"] = base_url
+    embeddings = OpenAIEmbeddings(**kwargs)
     vector_store = FAISS.from_documents(chunks, embeddings)
     return vector_store
 
@@ -67,7 +70,10 @@ def save_vector_store(vector_store: FAISS, path: str) -> None:
     vector_store.save_local(path)
 
 
-def load_vector_store(path: str, api_key: str = None) -> FAISS:
+def load_vector_store(path: str, api_key: str = None, base_url: str = None) -> FAISS:
     """Load vector store from disk."""
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    kwargs = {"api_key": api_key}
+    if base_url:
+        kwargs["base_url"] = base_url
+    embeddings = OpenAIEmbeddings(**kwargs)
     return FAISS.load_local(path, embeddings, allow_dangerous_deserialization=True)
