@@ -7,6 +7,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-EXPOSE 10000
+EXPOSE $PORT
 
-CMD ["gunicorn", "web_app:app", "--bind", "0.0.0.0:10000", "--workers", "2", "--timeout", "120"]
+CMD gunicorn web_app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120
