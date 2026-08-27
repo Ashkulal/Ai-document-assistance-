@@ -25,12 +25,13 @@ Answer:"""
 
 
 class DocumentAssistant:
-    def __init__(self, api_key: str = None, model_name: str = "gpt-3.5-turbo"):
+    def __init__(self, api_key: str = None, model_name: str = "gpt-3.5-turbo", base_url: str = None):
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not self.api_key:
-            raise ValueError("OpenAI API key is required. Set OPENAI_API_KEY in .env or pass api_key.")
+            raise ValueError("API key is required. Set OPENAI_API_KEY in .env or pass api_key.")
         
-        self.llm = ChatOpenAI(api_key=self.api_key, model_name=model_name, temperature=0)
+        self.base_url = base_url or os.getenv("OPENAI_BASE_URL")
+        self.llm = ChatOpenAI(api_key=self.api_key, model_name=model_name, temperature=0, base_url=self.base_url)
         self.vector_store = None
         self.qa_chain = None
 
