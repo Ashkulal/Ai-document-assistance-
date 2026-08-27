@@ -1,4 +1,12 @@
 let selectedFiles = [];
+let currentMode = "chat";
+let currentRound = null;
+let questions = [];
+let currentQuestionIndex = 0;
+let totalScore = 0;
+let totalAnswered = 0;
+let isRecording = false;
+let recognition = null;
 
 const dropzone = document.getElementById("dropzone");
 const fileInput = document.getElementById("fileInput");
@@ -9,6 +17,37 @@ const statusBadge = document.getElementById("statusBadge");
 const chatMessages = document.getElementById("chatMessages");
 const questionInput = document.getElementById("questionInput");
 const sendBtn = document.getElementById("sendBtn");
+const scoreDisplay = document.getElementById("scoreDisplay");
+const scoreValue = document.getElementById("scoreValue");
+
+// Voice Recognition Setup
+if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (event) => {
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+        }
+        questionInput.value = transcript;
+        autoResize();
+    };
+
+    recognition.onend = () => {
+        isRecording = false;
+        document.getElementById("voiceBtn").classList.remove("recording");
+    };
+
+    recognition.onerror = (event) => {
+        isRecording = false;
+        document.getElementById("voiceBtn").classList.remove("recording");
+        console.error("Speech recognition error:", event.error);
+    };
+}
 
 // Dropzone
 dropzone.addEventListener("click", () => fileInput.click());
@@ -87,11 +126,265 @@ async function uploadFiles() {
     processBtn.disabled = false;
 }
 
-// Chat
+// Voice Toggle
+function toggleVoice() {
+    if (!recognition) {
+        alert("Voice recognition not supported in this browser. Use Chrome.");
+        return;
+    }
+
+    if (isRecording) {
+        recognition.stop();
+        isRecording = false;
+        document.getElementById("voiceBtn").classList.remove("recording");
+    } else {
+        recognition.start();
+        isRecording = true;
+        document.getElementById("voiceBtn").classList.add("recording");
+    }
+}
+
+// Mode Toggle
+function setMode(mode) {
+    currentMode = mode;
+    document.getElementById("chatMode").classList.toggle("active", mode === "chat");
+    document.getElementById("interviewMode").classList.toggle("active", mode === "interview");
+    document.getElementById("interviewPanel").style.display = mode === "interview" ? "block" : "none";
+}
+
+// Start Round
+async function startRound(roundType) {
+    const statusBadge = document.getElementById("statusBadge");
+    if (statusBadge.textContent.includes("No documents")) {
+        alert("Upload a resume first!");
+        return;
+    }
+
+    currentRound = roundType;
+    document.getElementById("difficultySelector").style.display = "block";
+    document.getElementById("activeRound").style.display = "none";
+
+    const roundNames = {
+        aptitude: "📝 Aptitude Round",
+        technical: "💻 Technical Round",
+        hr: "🤝 HR Round",
+        behavioral: "🧠 Behavioral Round"
+    };
+
+    addMessage("system", `Starting ${roundNames[roundType]} - Choose difficulty`);
+}
+
+// Generate Questions
+async function generateQuestions(difficulty) {
+    document.getElementById("difficultySelector").style.display = "none";
+
+    const welcome = chatMessages.querySelector(".welcome-message");
+    if (welcome) welcome.remove();
+
+    addMessage("user", `Generate ${difficulty} ${currentRound} questions`);
+
+    const typing = addTyping();
+
+    try {
+        const res = await fetch("/api/interview", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ round_type: currentRound, difficulty }),
+        });
+        const data = await res.json();
+
+        typing.remove();
+
+        if (data.error) {
+            addMessage("error", data.error);
+            return;
+        }
+
+        // Parse questions
+        questions = parseQuestions(data.answer);
+        currentQuestionIndex = 0;
+        totalScore = 0;
+        totalAnswered = 0;
+
+        // Show first question
+        showActiveRound();
+        showQuestion(0);
+
+    } catch (err) {
+        typing.remove();
+        addMessage("error", err.message);
+    }
+}
+
+function parseQuestions(text) {
+    const lines = text.split("\n");
+    const qs = [];
+    for (const line of lines) {
+        const match = line.match(/^\d+[\.\)]\s*(.+)/);
+        if (match) {
+            qs.push(match[1].trim());
+        }
+    }
+    return qs;
+}
+
+function showActiveRound() {
+    const roundNames = {
+        aptitude: "📝 Aptitude",
+        technical: "💻 Technical",
+        hr: "🤝 HR",
+        behavioral: "🧠 Behavioral"
+    };
+
+    document.getElementById("activeRound").style.display = "flex";
+    document.getElementById("roundBadge").textContent = roundNames[currentRound];
+    document.getElementById("questionCounter").textContent = `Q${currentQuestionIndex + 1}/${questions.length}`;
+    scoreDisplay.style.display = "block";
+}
+
+function showQuestion(index) {
+    if (index >= questions.length) {
+        finishRound();
+        return;
+    }
+
+    const msg = document.createElement("div");
+    msg.className = "message question-msg";
+    msg.innerHTML = `<strong>Question ${index + 1}:</strong> ${questions[index]}`;
+    chatMessages.appendChild(msg);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    document.getElementById("questionCounter").textContent = `Q${currentQuestionIndex + 1}/${questions.length}`;
+}
+
+// Send Answer
+async function sendAnswer() {
+    const answer = questionInput.value.trim();
+    if (!answer || !questions.length) return;
+
+    questionInput.value = "";
+    questionInput.style.height = "auto";
+
+    addMessage("user", answer);
+
+    const typing = addTyping();
+
+    try {
+        const res = await fetch("/api/evaluate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                question: questions[currentQuestionIndex],
+                answer: answer,
+                round_type: currentRound
+            }),
+        });
+        const data = await res.json();
+
+        typing.remove();
+
+        if (data.error) {
+            addMessage("error", data.error);
+            return;
+        }
+
+        // Parse score
+        const scoreMatch = data.evaluation.match(/SCORE:\s*(\d+)/i);
+        const score = scoreMatch ? parseInt(scoreMatch[1]) : 0;
+
+        totalScore += score;
+        totalAnswered++;
+
+        // Show evaluation
+        const evalMsg = document.createElement("div");
+        evalMsg.className = "message evaluation";
+        evalMsg.innerHTML = formatEvaluation(data.evaluation, score);
+        chatMessages.appendChild(evalMsg);
+
+        // Update score
+        const avgScore = (totalScore / totalAnswered).toFixed(1);
+        scoreValue.textContent = `${avgScore}/10`;
+        scoreValue.style.color = avgScore >= 7 ? "#22c55e" : avgScore >= 5 ? "#f59e0b" : "#ef4444";
+
+        // Next question
+        currentQuestionIndex++;
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        setTimeout(() => {
+            showQuestion(currentQuestionIndex);
+        }, 1500);
+
+    } catch (err) {
+        typing.remove();
+        addMessage("error", err.message);
+    }
+}
+
+function formatEvaluation(text, score) {
+    let formatted = text;
+    formatted = formatted.replace(/SCORE:\s*\d+/i, "");
+    formatted = formatted.replace(/KEY_POINTS:/i, "<br><strong>Key Points:</strong>");
+    formatted = formatted.replace(/FEEDBACK:/i, "<strong>Feedback:</strong>");
+    formatted = formatted.replace(/\n/g, "<br>");
+
+    const scoreColor = score >= 7 ? "#22c55e" : score >= 5 ? "#f59e0b" : "#ef4444";
+    return `<div style="margin-bottom:0.5rem;"><span style="font-size:1.5rem;font-weight:700;color:${scoreColor};">${score}/10</span></div>${formatted}`;
+}
+
+function finishRound() {
+    const avgScore = totalAnswered > 0 ? (totalScore / totalAnswered).toFixed(1) : 0;
+    const grade = avgScore >= 9 ? "A+" : avgScore >= 8 ? "A" : avgScore >= 7 ? "B+" : avgScore >= 6 ? "B" : avgScore >= 5 ? "C" : "D";
+
+    const summary = document.createElement("div");
+    summary.className = "message assistant";
+    summary.innerHTML = `
+        <div style="text-align:center;">
+            <h3 style="margin-bottom:1rem;">🎉 Round Complete!</h3>
+            <div style="font-size:2rem;font-weight:700;color:${avgScore >= 7 ? '#22c55e' : '#f59e0b'};">${avgScore}/10</div>
+            <div style="font-size:1.2rem;margin:0.5rem 0;">Grade: ${grade}</div>
+            <div style="color:var(--text-secondary);">Questions Answered: ${totalAnswered}</div>
+        </div>
+    `;
+    chatMessages.appendChild(summary);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    endRound();
+}
+
+function endRound() {
+    currentRound = null;
+    questions = [];
+    currentQuestionIndex = 0;
+    document.getElementById("activeRound").style.display = "none";
+    document.getElementById("difficultySelector").style.display = "block";
+}
+
+// Helpers
+function addMessage(type, text) {
+    const msg = document.createElement("div");
+    msg.className = `message ${type}`;
+    msg.textContent = text;
+    chatMessages.appendChild(msg);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function addTyping() {
+    const typing = document.createElement("div");
+    typing.className = "typing-indicator";
+    typing.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+    chatMessages.appendChild(typing);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return typing;
+}
+
 function handleKey(e) {
     if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        askQuestion();
+        if (currentMode === "interview" && questions.length > 0) {
+            sendAnswer();
+        } else {
+            askQuestion();
+        }
     }
     autoResize();
 }
@@ -107,24 +400,13 @@ async function askQuestion() {
 
     questionInput.value = "";
     questionInput.style.height = "auto";
-    sendBtn.disabled = true;
 
-    // Remove welcome
     const welcome = chatMessages.querySelector(".welcome-message");
     if (welcome) welcome.remove();
 
-    // User message
-    const userMsg = document.createElement("div");
-    userMsg.className = "message user";
-    userMsg.textContent = question;
-    chatMessages.appendChild(userMsg);
+    addMessage("user", question);
 
-    // Typing indicator
-    const typing = document.createElement("div");
-    typing.className = "typing-indicator";
-    typing.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
-    chatMessages.appendChild(typing);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    const typing = addTyping();
 
     try {
         const res = await fetch("/api/ask", {
@@ -150,97 +432,12 @@ async function askQuestion() {
         chatMessages.appendChild(assistantMsg);
     } catch (err) {
         typing.remove();
-        const errorMsg = document.createElement("div");
-        errorMsg.className = "message error";
-        errorMsg.textContent = err.message;
-        chatMessages.appendChild(errorMsg);
+        addMessage("error", err.message);
     }
 
     chatMessages.scrollTop = chatMessages.scrollHeight;
-    sendBtn.disabled = false;
-    questionInput.focus();
 }
 
 function toggleSidebar() {
     document.getElementById("sidebar").classList.toggle("collapsed");
-}
-
-// Mode toggle
-let currentMode = "chat";
-
-function setMode(mode) {
-    currentMode = mode;
-    const chatMode = document.getElementById("chatMode");
-    const interviewMode = document.getElementById("interviewMode");
-    const interviewPanel = document.getElementById("interviewPanel");
-
-    if (mode === "chat") {
-        chatMode.classList.add("active");
-        interviewMode.classList.remove("active");
-        interviewPanel.style.display = "none";
-    } else {
-        chatMode.classList.remove("active");
-        interviewMode.classList.add("active");
-        interviewPanel.style.display = "block";
-    }
-}
-
-// Interview
-async function generateInterview(difficulty) {
-    const statusBadge = document.getElementById("statusBadge");
-    if (statusBadge.textContent.includes("No documents")) {
-        alert("Upload a resume first!");
-        return;
-    }
-
-    const welcome = chatMessages.querySelector(".welcome-message");
-    if (welcome) welcome.remove();
-
-    const userMsg = document.createElement("div");
-    userMsg.className = "message user";
-    userMsg.textContent = `Generate ${difficulty} interview questions`;
-    chatMessages.appendChild(userMsg);
-
-    const typing = document.createElement("div");
-    typing.className = "typing-indicator";
-    typing.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
-    chatMessages.appendChild(typing);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-
-    try {
-        const res = await fetch("/api/interview", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ difficulty }),
-        });
-        const data = await res.json();
-
-        typing.remove();
-
-        const assistantMsg = document.createElement("div");
-        assistantMsg.className = `message ${data.error ? "error" : "assistant"}`;
-
-        if (data.error) {
-            assistantMsg.textContent = data.error;
-        } else {
-            // Format the answer with markdown-like parsing
-            let answer = data.answer;
-            answer = answer.replace(/^## (.+)$/gm, '<div class="q-section">$1</div>');
-            answer = answer.replace(/^### (.+)$/gm, '<div class="q-subsection">$1</div>');
-            answer = answer.replace(/^(\d+)\. (.+)$/gm, '<div class="q-item"><span class="q-num">$1.</span> $2</div>');
-            answer = answer.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-            answer = answer.replace(/\n/g, '<br>');
-            assistantMsg.innerHTML = answer;
-        }
-
-        chatMessages.appendChild(assistantMsg);
-    } catch (err) {
-        typing.remove();
-        const errorMsg = document.createElement("div");
-        errorMsg.className = "message error";
-        errorMsg.textContent = err.message;
-        chatMessages.appendChild(errorMsg);
-    }
-
-    chatMessages.scrollTop = chatMessages.scrollHeight;
 }

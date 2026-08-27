@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Document Assistant</title>
+    <title>AI Interview Prep</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -24,19 +24,19 @@
                 <label>Model</label>
                 <select id="modelSelect">
                     {% for m in models %}
-                    <option value="{{ m.id }}">{{ m.name }} — {{ m.provider }} ({{ m.ctx }})</option>
+                    <option value="{{ m.id }}">{{ m.name }} — {{ m.provider }}</option>
                     {% endfor %}
                 </select>
             </div>
 
             <div class="upload-section">
-                <label>Documents</label>
+                <label>Resume / Documents</label>
                 <div class="dropzone" id="dropzone">
                     <input type="file" id="fileInput" multiple accept=".pdf,.txt,.csv,.docx" hidden />
                     <div class="dropzone-content">
                         <span class="dropzone-icon">📁</span>
-                        <p>Drop files or click to browse</p>
-                        <span class="dropzone-hint">PDF, TXT, CSV, DOCX</span>
+                        <p>Drop resume or click to browse</p>
+                        <span class="dropzone-hint">PDF, DOCX, TXT</span>
                     </div>
                 </div>
                 <div id="fileList" class="file-list"></div>
@@ -48,44 +48,72 @@
 
             <div class="sidebar-footer">
                 <div class="status-badge" id="statusBadge">● No documents</div>
+                <div class="score-display" id="scoreDisplay" style="display:none;">
+                    <div class="score-label">Current Score</div>
+                    <div class="score-value" id="scoreValue">0/10</div>
+                </div>
             </div>
         </aside>
 
         <main class="chat-area">
             <div class="chat-header">
                 <div class="header-left">
-                    <h2>AI Document Assistant</h2>
-                    <p>Upload documents and ask questions</p>
+                    <h2>AI Interview Prep</h2>
+                    <p>Upload resume, choose a round, and practice</p>
                 </div>
                 <div class="mode-toggle">
                     <button class="mode-btn active" id="chatMode" onclick="setMode('chat')">💬 Chat</button>
-                    <button class="mode-btn" id="interviewMode" onclick="setMode('interview')">🎯 Interview Prep</button>
+                    <button class="mode-btn" id="interviewMode" onclick="setMode('interview')">🎯 Interview</button>
                 </div>
             </div>
 
             <div class="interview-panel" id="interviewPanel" style="display:none;">
-                <p>Generate interview questions based on your uploaded resume</p>
-                <div class="interview-btns">
-                    <button class="diff-btn easy" onclick="generateInterview('easy')">😊 Easy</button>
-                    <button class="diff-btn medium" onclick="generateInterview('medium')">🤔 Medium</button>
-                    <button class="diff-btn tough" onclick="generateInterview('tough')">🔥 Tough</button>
-                    <button class="diff-btn all" onclick="generateInterview('all')">📋 All Levels</button>
+                <div class="round-selector">
+                    <button class="round-btn aptitude" onclick="startRound('aptitude')">📝 Aptitude</button>
+                    <button class="round-btn technical" onclick="startRound('technical')">💻 Technical</button>
+                    <button class="round-btn hr" onclick="startRound('hr')">🤝 HR Round</button>
+                    <button class="round-btn behavioral" onclick="startRound('behavioral')">🧠 Behavioral</button>
+                </div>
+                <div class="difficulty-selector" id="difficultySelector" style="display:none;">
+                    <p>Choose difficulty:</p>
+                    <div class="diff-btns">
+                        <button class="diff-btn easy" onclick="generateQuestions('easy')">😊 Easy</button>
+                        <button class="diff-btn medium" onclick="generateQuestions('medium')">🤔 Medium</button>
+                        <button class="diff-btn tough" onclick="generateQuestions('tough')">🔥 Tough</button>
+                        <button class="diff-btn all" onclick="generateQuestions('all')">📋 All Levels</button>
+                    </div>
+                </div>
+                <div class="active-round" id="activeRound" style="display:none;">
+                    <span class="round-badge" id="roundBadge">Technical Round</span>
+                    <span class="question-counter" id="questionCounter">Q1/10</span>
+                    <button class="end-btn" onclick="endRound()">End Round</button>
                 </div>
             </div>
 
             <div class="chat-messages" id="chatMessages">
                 <div class="welcome-message">
-                    <div class="welcome-icon">🧠</div>
-                    <h3>Welcome!</h3>
-                    <p>Upload documents in the sidebar, then ask questions about their content.</p>
+                    <div class="welcome-icon">🎯</div>
+                    <h3>Interview Practice Mode</h3>
+                    <p>Upload your resume, select a round, and start practicing!</p>
+                    <div class="features-grid">
+                        <div class="feature">📝 Aptitude Questions</div>
+                        <div class="feature">💻 Technical Questions</div>
+                        <div class="feature">🤝 HR Round Questions</div>
+                        <div class="feature">🧠 Behavioral Questions</div>
+                        <div class="feature">🎤 Voice Input</div>
+                        <div class="feature">📊 Score Tracking</div>
+                    </div>
                 </div>
             </div>
 
             <div class="chat-input-area">
                 <div class="input-wrapper">
-                    <textarea id="questionInput" placeholder="Ask about your documents..." rows="1"
+                    <textarea id="questionInput" placeholder="Type your answer or use voice..." rows="1"
                         onkeydown="handleKey(event)"></textarea>
-                    <button class="send-btn" onclick="askQuestion()" id="sendBtn" disabled>
+                    <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()" title="Voice Input">
+                        🎤
+                    </button>
+                    <button class="send-btn" onclick="sendAnswer()" id="sendBtn" disabled>
                         <span>→</span>
                     </button>
                 </div>

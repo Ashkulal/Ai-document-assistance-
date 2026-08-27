@@ -15,6 +15,7 @@
     --accent-hover: #818cf8;
     --success: #22c55e;
     --error: #ef4444;
+    --warning: #f59e0b;
 }
 
 body {
@@ -226,6 +227,27 @@ select {
     color: var(--success);
 }
 
+.score-display {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.score-label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.score-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--success);
+    margin-top: 0.25rem;
+}
+
 /* Chat Area */
 .chat-area {
     flex: 1;
@@ -281,26 +303,62 @@ select {
     color: var(--text-primary);
 }
 
+/* Interview Panel */
 .interview-panel {
     padding: 1rem 1.5rem;
     border-bottom: 1px solid var(--border);
     background: var(--bg-secondary);
 }
 
-.interview-panel p {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    margin-bottom: 0.75rem;
+.round-selector {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
 }
 
-.interview-btns {
+.round-btn {
+    padding: 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.round-btn:hover {
+    transform: translateY(-1px);
+}
+
+.round-btn.aptitude { border-color: #8b5cf6; }
+.round-btn.aptitude:hover { background: rgba(139, 92, 246, 0.15); }
+.round-btn.technical { border-color: #3b82f6; }
+.round-btn.technical:hover { background: rgba(59, 130, 246, 0.15); }
+.round-btn.hr { border-color: #10b981; }
+.round-btn.hr:hover { background: rgba(16, 185, 129, 0.15); }
+.round-btn.behavioral { border-color: #f59e0b; }
+.round-btn.behavioral:hover { background: rgba(245, 158, 11, 0.15); }
+
+.difficulty-selector {
+    margin-top: 0.75rem;
+}
+
+.difficulty-selector p {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.diff-btns {
     display: flex;
     gap: 0.5rem;
 }
 
 .diff-btn {
     flex: 1;
-    padding: 0.6rem;
+    padding: 0.5rem;
     border: 1px solid var(--border);
     border-radius: 8px;
     background: var(--bg-tertiary);
@@ -316,37 +374,50 @@ select {
 }
 
 .diff-btn.easy { border-color: #22c55e; }
-.diff-btn.easy:hover { background: rgba(34, 197, 94, 0.1); }
+.diff-btn.easy:hover { background: rgba(34, 197, 94, 0.15); }
 .diff-btn.medium { border-color: #f59e0b; }
-.diff-btn.medium:hover { background: rgba(245, 158, 11, 0.1); }
+.diff-btn.medium:hover { background: rgba(245, 158, 11, 0.15); }
 .diff-btn.tough { border-color: #ef4444; }
-.diff-btn.tough:hover { background: rgba(239, 68, 68, 0.1); }
+.diff-btn.tough:hover { background: rgba(239, 68, 68, 0.15); }
 .diff-btn.all { border-color: var(--accent); }
-.diff-btn.all:hover { background: rgba(99, 102, 241, 0.1); }
+.diff-btn.all:hover { background: rgba(99, 102, 241, 0.15); }
 
-.q-section {
-    font-weight: 700;
-    font-size: 1rem;
-    margin: 1rem 0 0.5rem;
-    color: var(--accent);
+.active-round {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
 }
 
-.q-subsection {
+.round-badge {
+    padding: 0.3rem 0.75rem;
+    background: var(--accent);
+    color: white;
+    border-radius: 20px;
+    font-size: 0.75rem;
     font-weight: 600;
-    margin: 0.75rem 0 0.35rem;
-    color: var(--text-primary);
 }
 
-.q-item {
-    padding: 0.3rem 0;
-    padding-left: 0.5rem;
+.question-counter {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 600;
 }
 
-.q-num {
-    font-weight: 700;
-    color: var(--accent);
+.end-btn {
+    margin-left: auto;
+    padding: 0.3rem 0.75rem;
+    background: var(--error);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
 }
 
+/* Chat Messages */
 .chat-messages {
     flex: 1;
     overflow-y: auto;
@@ -370,6 +441,21 @@ select {
 .welcome-message h3 {
     color: var(--text-primary);
     margin-bottom: 0.5rem;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.feature {
+    padding: 0.75rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.8rem;
 }
 
 .message {
@@ -400,6 +486,27 @@ select {
     border-bottom-left-radius: 4px;
 }
 
+.message.evaluation {
+    align-self: flex-start;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-bottom-left-radius: 4px;
+}
+
+.message.question-msg {
+    align-self: flex-start;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--accent);
+    border-bottom-left-radius: 4px;
+    max-width: 90%;
+}
+
+.message.error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: var(--error);
+}
+
 .message.assistant .sources {
     margin-top: 0.5rem;
     padding-top: 0.5rem;
@@ -408,19 +515,21 @@ select {
     color: var(--text-secondary);
 }
 
-.message.assistant .sources span {
-    display: inline-block;
-    background: var(--bg-secondary);
-    padding: 2px 8px;
-    border-radius: 4px;
-    margin-right: 0.35rem;
-    margin-top: 0.25rem;
+.q-section {
+    font-weight: 700;
+    font-size: 1rem;
+    margin: 1rem 0 0.5rem;
+    color: var(--accent);
 }
 
-.message.error {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: var(--error);
+.q-item {
+    padding: 0.3rem 0;
+    padding-left: 0.5rem;
+}
+
+.q-num {
+    font-weight: 700;
+    color: var(--accent);
 }
 
 .typing-indicator {
@@ -486,6 +595,36 @@ select {
 
 .input-wrapper textarea:focus {
     border: none;
+}
+
+.voice-btn {
+    width: 36px;
+    height: 36px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.voice-btn:hover {
+    border-color: var(--accent);
+}
+
+.voice-btn.recording {
+    background: var(--error);
+    border-color: var(--error);
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
 }
 
 .send-btn {

@@ -94,14 +94,58 @@ def ask():
 def interview():
     global assistant
     data = request.json
+    round_type = data.get("round_type", "all")
     difficulty = data.get("difficulty", "all")
 
     if not assistant:
         return jsonify({"error": "No documents loaded"}), 400
 
-    prompt = f"""Based on the uploaded resume, generate interview questions at {difficulty} difficulty level.
+    prompts = {
+        "aptitude": """Generate 10 aptitude questions for a job interview. Include:
+- 3 logical reasoning questions
+- 3 mathematical/quantitative questions  
+- 2 data interpretation questions
+- 2 probability/statistics questions
+Format: numbered list with the correct answer in parentheses after each question.
+Example: 1. What is 15% of 200? (30)""",
+        
+        "technical": f"""Based on the uploaded resume, generate 10 technical interview questions.
+Include questions about:
+- Their programming languages (Java, Python, etc.)
+- Frameworks they use (React, Spring Boot, Flutter)
+- System design and architecture
+- Database and API design
+- AI/ML concepts if mentioned
+Format: numbered list with difficulty tags [Easy], [Medium], [Hard]""",
+        
+        "hr": """Generate 10 HR interview questions. Include:
+- Tell me about yourself
+- Why should we hire you?
+- What are your strengths and weaknesses?
+- Where do you see yourself in 5 years?
+- Why did you leave your last job?
+- What is your greatest achievement?
+- How do you handle pressure?
+- Do you have any questions for us?
+- What are your salary expectations?
+- Why this company?
+Format: numbered list""",
+        
+        "behavioral": """Generate 10 behavioral interview questions using STAR method format:
+- Tell me about a time you faced a challenge
+- Describe a situation where you showed leadership
+- Give an example of a time you failed
+- Tell me about a time you worked in a team
+- Describe a situation where you had a conflict
+Format: numbered list""",
+    }
 
-Format your response EXACTLY like this (no extra text):
+    if round_type in prompts:
+        prompt = prompts[round_type]
+    else:
+        prompt = f"""Based on the uploaded resume, generate interview questions at {difficulty} difficulty level.
+
+Format your response EXACTLY like this:
 
 ## Easy (Low)
 1. [question]
@@ -124,18 +168,41 @@ Format your response EXACTLY like this (no extra text):
 4. [question]
 5. [question]
 
-Generate 5 questions for EACH level. Base questions on the candidate's skills, projects, internship, and education from the resume."""
-
-    if difficulty == "easy":
-        prompt = "Based on the uploaded resume, generate 10 easy/low-level interview questions. These should be basic questions about the candidate's background, education, and simple skill checks. Format: numbered list."
-    elif difficulty == "medium":
-        prompt = "Based on the uploaded resume, generate 10 medium-level interview questions. These should test project experience, technical depth, and problem-solving. Format: numbered list."
-    elif difficulty == "tough":
-        prompt = "Based on the uploaded resume, generate 10 tough/hard-level interview questions. These should be challenging system design, architecture, and deep technical questions based on their tech stack. Format: numbered list."
+Generate 5 questions for EACH level. Base questions on the candidate's skills, projects, internship, and education."""
 
     try:
         result = assistant.ask(prompt)
         return jsonify({"answer": result["answer"]})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/evaluate", methods=["POST"])
+def evaluate():
+    global assistant
+    data = request.json
+    question = data.get("question", "")
+    answer = data.get("answer", "")
+    round_type = data.get("round_type", "technical")
+
+    if not assistant:
+        return jsonify({"error": "No documents loaded"}), 400
+
+    prompt = f"""You are an interview evaluator. Grade the candidate's answer.
+
+Question: {question}
+Candidate's Answer: {answer}
+
+Evaluate and respond in this EXACT format:
+SCORE: [1-10]
+FEEDBACK: [brief 1-2 sentence feedback]
+KEY_POINTS: [list 2-3 things the answer should have included]
+
+Be fair but strict. Score based on accuracy, completeness, and clarity."""
+
+    try:
+        result = assistant.ask(prompt)
+        return jsonify({"evaluation": result["answer"]})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
