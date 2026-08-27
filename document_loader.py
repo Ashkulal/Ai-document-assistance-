@@ -8,7 +8,19 @@ from langchain_community.document_loaders import (
 )
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
+
+_EMBEDDINGS = None
+
+def _get_embeddings():
+    global _EMBEDDINGS
+    if _EMBEDDINGS is None:
+        _EMBEDDINGS = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2",
+            model_kwargs={"device": "cpu"},
+            cache_folder=os.path.join(os.path.expanduser("~"), ".cache", "hf_models"),
+        )
+    return _EMBEDDINGS
 
 
 SUPPORTED_EXTENSIONS = {
@@ -57,10 +69,7 @@ def split_documents(documents: list, chunk_size: int = 1000, chunk_overlap: int 
 
 def create_vector_store(chunks: list, api_key: str = None, base_url: str = None) -> FAISS:
     """Create a FAISS vector store from document chunks."""
-    kwargs = {"api_key": api_key}
-    if base_url:
-        kwargs["base_url"] = base_url
-    embeddings = OpenAIEmbeddings(**kwargs)
+    embeddings = _get_embeddings()
     vector_store = FAISS.from_documents(chunks, embeddings)
     return vector_store
 
@@ -72,8 +81,5 @@ def save_vector_store(vector_store: FAISS, path: str) -> None:
 
 def load_vector_store(path: str, api_key: str = None, base_url: str = None) -> FAISS:
     """Load vector store from disk."""
-    kwargs = {"api_key": api_key}
-    if base_url:
-        kwargs["base_url"] = base_url
-    embeddings = OpenAIEmbeddings(**kwargs)
+    embeddings = _get_embeddings()
     return FAISS.load_local(path, embeddings, allow_dangerous_deserialization=True)
