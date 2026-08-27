@@ -164,3 +164,83 @@ async function askQuestion() {
 function toggleSidebar() {
     document.getElementById("sidebar").classList.toggle("collapsed");
 }
+
+// Mode toggle
+let currentMode = "chat";
+
+function setMode(mode) {
+    currentMode = mode;
+    const chatMode = document.getElementById("chatMode");
+    const interviewMode = document.getElementById("interviewMode");
+    const interviewPanel = document.getElementById("interviewPanel");
+
+    if (mode === "chat") {
+        chatMode.classList.add("active");
+        interviewMode.classList.remove("active");
+        interviewPanel.style.display = "none";
+    } else {
+        chatMode.classList.remove("active");
+        interviewMode.classList.add("active");
+        interviewPanel.style.display = "block";
+    }
+}
+
+// Interview
+async function generateInterview(difficulty) {
+    const statusBadge = document.getElementById("statusBadge");
+    if (statusBadge.textContent.includes("No documents")) {
+        alert("Upload a resume first!");
+        return;
+    }
+
+    const welcome = chatMessages.querySelector(".welcome-message");
+    if (welcome) welcome.remove();
+
+    const userMsg = document.createElement("div");
+    userMsg.className = "message user";
+    userMsg.textContent = `Generate ${difficulty} interview questions`;
+    chatMessages.appendChild(userMsg);
+
+    const typing = document.createElement("div");
+    typing.className = "typing-indicator";
+    typing.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+    chatMessages.appendChild(typing);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    try {
+        const res = await fetch("/api/interview", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ difficulty }),
+        });
+        const data = await res.json();
+
+        typing.remove();
+
+        const assistantMsg = document.createElement("div");
+        assistantMsg.className = `message ${data.error ? "error" : "assistant"}`;
+
+        if (data.error) {
+            assistantMsg.textContent = data.error;
+        } else {
+            // Format the answer with markdown-like parsing
+            let answer = data.answer;
+            answer = answer.replace(/^## (.+)$/gm, '<div class="q-section">$1</div>');
+            answer = answer.replace(/^### (.+)$/gm, '<div class="q-subsection">$1</div>');
+            answer = answer.replace(/^(\d+)\. (.+)$/gm, '<div class="q-item"><span class="q-num">$1.</span> $2</div>');
+            answer = answer.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            answer = answer.replace(/\n/g, '<br>');
+            assistantMsg.innerHTML = answer;
+        }
+
+        chatMessages.appendChild(assistantMsg);
+    } catch (err) {
+        typing.remove();
+        const errorMsg = document.createElement("div");
+        errorMsg.className = "message error";
+        errorMsg.textContent = err.message;
+        chatMessages.appendChild(errorMsg);
+    }
+
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}

@@ -53,8 +53,24 @@
 
         <main class="chat-area">
             <div class="chat-header">
-                <h2>AI Document Assistant</h2>
-                <p>Upload documents and ask questions</p>
+                <div class="header-left">
+                    <h2>AI Document Assistant</h2>
+                    <p>Upload documents and ask questions</p>
+                </div>
+                <div class="mode-toggle">
+                    <button class="mode-btn active" id="chatMode" onclick="setMode('chat')">💬 Chat</button>
+                    <button class="mode-btn" id="interviewMode" onclick="setMode('interview')">🎯 Interview Prep</button>
+                </div>
+            </div>
+
+            <div class="interview-panel" id="interviewPanel" style="display:none;">
+                <p>Generate interview questions based on your uploaded resume</p>
+                <div class="interview-btns">
+                    <button class="diff-btn easy" onclick="generateInterview('easy')">😊 Easy</button>
+                    <button class="diff-btn medium" onclick="generateInterview('medium')">🤔 Medium</button>
+                    <button class="diff-btn tough" onclick="generateInterview('tough')">🔥 Tough</button>
+                    <button class="diff-btn all" onclick="generateInterview('all')">📋 All Levels</button>
+                </div>
             </div>
 
             <div class="chat-messages" id="chatMessages">

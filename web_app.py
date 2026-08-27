@@ -90,5 +90,55 @@ def ask():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/interview", methods=["POST"])
+def interview():
+    global assistant
+    data = request.json
+    difficulty = data.get("difficulty", "all")
+
+    if not assistant:
+        return jsonify({"error": "No documents loaded"}), 400
+
+    prompt = f"""Based on the uploaded resume, generate interview questions at {difficulty} difficulty level.
+
+Format your response EXACTLY like this (no extra text):
+
+## Easy (Low)
+1. [question]
+2. [question]
+3. [question]
+4. [question]
+5. [question]
+
+## Medium (Mid)
+1. [question]
+2. [question]
+3. [question]
+4. [question]
+5. [question]
+
+## Tough (High)
+1. [question]
+2. [question]
+3. [question]
+4. [question]
+5. [question]
+
+Generate 5 questions for EACH level. Base questions on the candidate's skills, projects, internship, and education from the resume."""
+
+    if difficulty == "easy":
+        prompt = "Based on the uploaded resume, generate 10 easy/low-level interview questions. These should be basic questions about the candidate's background, education, and simple skill checks. Format: numbered list."
+    elif difficulty == "medium":
+        prompt = "Based on the uploaded resume, generate 10 medium-level interview questions. These should test project experience, technical depth, and problem-solving. Format: numbered list."
+    elif difficulty == "tough":
+        prompt = "Based on the uploaded resume, generate 10 tough/hard-level interview questions. These should be challenging system design, architecture, and deep technical questions based on their tech stack. Format: numbered list."
+
+    try:
+        result = assistant.ask(prompt)
+        return jsonify({"answer": result["answer"]})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
