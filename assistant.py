@@ -1,8 +1,8 @@
 import os
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
+from langchain_classic.chains import RetrievalQA
+from langchain_core.prompts import PromptTemplate
 
 from document_loader import (
     load_documents,
