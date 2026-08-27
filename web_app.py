@@ -110,78 +110,61 @@ def interview():
     if not assistant:
         return jsonify({"error": "No documents loaded"}), 400
 
-    resume_section = f"\n\nRESUME CONTENT:\n{resume_content}" if resume_content else ""
+    resume_section = f"\n\nRESUME:\n{resume_content}" if resume_content else ""
 
     prompts = {
-        "aptitude": f"""You are a professional interview coach. The candidate uploaded this resume:{resume_section}
+        "aptitude": f"""You are a sharp interviewer. Read the candidate's resume below.
+{resume_section}
 
-FIRST: Identify the candidate's field (CS, ECE, MBA, etc.) and role target (developer, analyst, manager, etc.)
+Based on their EDUCATION and FIELD, generate 10 aptitude questions:
+- Match their degree level (B.Tech/MBA/etc)
+- Include logical reasoning, numerical, pattern-based questions
+- 3 Easy, 4 Medium, 3 Hard
 
-THEN generate 10 aptitude questions TAILORED to their field:
-- For CS/Engineering candidates: include logical reasoning, pattern recognition, basic math, coding logic
-- For MBA/Business candidates: include data interpretation, business reasoning, quantitative aptitude, logical reasoning
-- For general candidates: mix of verbal, non-verbal, and quantitative
+Format: number. question
+Answer each question yourself in (parentheses) after the question.""",
 
-Each question must be realistic and relevant to their target role.
-Format each as: number. question (answer in parentheses)
+        "technical": f"""You are a ruthless technical interviewer. Read the candidate's resume below.
+{resume_section}
 
-Example for a CS student:
-1. If an array of n elements is sorted, what is the minimum number of comparisons needed to find an element? (log n)
-2. A function f(n) = 2*f(n-1) + 1, f(0) = 0. What is f(4)? (31)""",
+Look at EVERY skill, project, and technology listed. Now grill them:
 
-        "technical": f"""You are a senior technical interviewer. The candidate uploaded this resume:{resume_section}
+1. Ask about each major skill/project listed — deep not surface level
+2. "You mention X in your resume — how does it work under the hood?"
+3. "Your project uses Y — why did you choose Y over alternatives?"
+4. "If Z breaks in production, how do you debug it?"
+5. Mix coding problems related to their tech stack
+6. Ask system design based on their project scale
+7. 3 Easy, 4 Medium, 3 Hard
 
-FIRST: Extract from the resume:
-1. Programming languages they know
-2. Frameworks/tools they use
-3. Projects they built (with tech stack)
-4. Areas of expertise (web, mobile, AI, cloud, etc.)
-5. Internship/work experience technologies
+Generate 10 questions. Format: number. question""",
 
-THEN generate 10 technical questions SPECIFICALLY based on what you found:
-- Ask about technologies THEY listed (not generic)
-- Ask about THEIR projects in detail
-- Ask design questions relevant to THEIR stack
-- Include [Easy], [Medium], [Hard] tags
-- Ask "how would you improve X project?" type questions
+        "hr": f"""You are a sharp HR interviewer. Read the candidate's resume below.
+{resume_section}
 
-Format: number. [Easy/Medium/Hard] question""",
+Look at their CAREER PATH, education gaps, job switches, achievements. Now ask:
 
-        "hr": f"""You are an experienced HR interviewer. The candidate uploaded this resume:{resume_section}
+1. Questions that probe their actual experiences listed
+2. "I see you worked at [company] — tell me about your biggest challenge there"
+3. "You studied [degree] — why that field?"
+4. Questions about gaps, transitions, choices visible in the resume
+5. Strengths/weaknesses related to THEIR profile
+6. Where they see themselves going based on THEIR trajectory
 
-FIRST: Identify from the resume:
-1. Their education background
-2. Career gaps or transitions
-3. Internship/company names
-4. Achievements and awards
-5. Career goal hints
+Generate 10 questions. Format: number. question""",
 
-THEN generate 10 HR questions SPECIFICALLY relevant to their profile:
-- Ask about THEIR specific experiences
-- Address potential concerns from THEIR resume
-- Ask about THEIR career goals
-- Include behavioral + situational questions
-- Make it feel like a real HR screening
+        "behavioral": f"""You are a behavioral interview expert. Read the candidate's resume below.
+{resume_section}
 
-Format: number. question""",
+Look at their PROJECTS, TEAM WORK, LEADERSHIP, EXTRACURRICULARS. Now ask STAR questions about THEIR actual experiences:
 
-        "behavioral": f"""You are a behavioral interview specialist. The candidate uploaded this resume:{resume_section}
+1. "Tell me about a time during [their specific project] when things went wrong"
+2. "Describe your role in [their team project]"
+3. "Give an example of how you handled [challenge relevant to their field]"
+4. "Tell me about a disagreement with a teammate during [their project]"
+5. Questions drawn from THEIR activities and experiences
 
-FIRST: Identify from the resume:
-1. Team projects they worked on
-2. Leadership roles held
-3. Challenges mentioned in projects
-4. Achievements and competitions
-5. Volunteer work or extracurriculars
-
-THEN generate 10 behavioral questions using STAR method, SPECIFICALLY about:
-- Challenges in THEIR projects
-- Leadership in THEIR roles
-- Team conflicts THEY might have faced
-- Failures and learnings from THEIR experience
-- Time management with THEIR activities
-
-Format: number. question""",
+Generate 10 questions. Format: number. question""",
     }
 
     prompt = prompts.get(round_type, prompts["technical"])

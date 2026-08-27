@@ -211,7 +211,7 @@ function setMode(mode) {
     document.getElementById("interviewPanel").style.display = mode === "interview" ? "block" : "none";
 }
 
-// Start Round
+// Start Round - directly generate questions
 async function startRound(roundType) {
     const statusBadge = document.getElementById("statusBadge");
     if (statusBadge.textContent.includes("No documents")) {
@@ -220,8 +220,11 @@ async function startRound(roundType) {
     }
 
     currentRound = roundType;
-    document.getElementById("difficultySelector").style.display = "block";
+    document.getElementById("difficultySelector").style.display = "none";
     document.getElementById("activeRound").style.display = "none";
+
+    const welcome = chatMessages.querySelector(".welcome-message");
+    if (welcome) welcome.remove();
 
     const roundNames = {
         aptitude: "📝 Aptitude Round",
@@ -230,7 +233,42 @@ async function startRound(roundType) {
         behavioral: "🧠 Behavioral Round"
     };
 
-    addMessage("system", `Starting ${roundNames[roundType]} - Choose difficulty`);
+    addMessage("system", `Starting ${roundNames[roundType]} — Analyzing your resume...`);
+
+    const typing = addTyping();
+
+    try {
+        const res = await fetch("/api/interview", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ round_type: currentRound }),
+        });
+        const data = await res.json();
+
+        typing.remove();
+
+        if (data.error) {
+            addMessage("error", data.error);
+            return;
+        }
+
+        questions = parseQuestions(data.answer);
+        currentQuestionIndex = 0;
+        totalScore = 0;
+        totalAnswered = 0;
+
+        if (questions.length === 0) {
+            addMessage("error", "No questions generated. Try again.");
+            return;
+        }
+
+        showActiveRound();
+        showQuestion(0);
+
+    } catch (err) {
+        typing.remove();
+        addMessage("error", err.message);
+    }
 }
 
 // Generate Questions
@@ -429,7 +467,7 @@ function endRound() {
     questions = [];
     currentQuestionIndex = 0;
     document.getElementById("activeRound").style.display = "none";
-    document.getElementById("difficultySelector").style.display = "block";
+    document.getElementById("roundSelector").style.display = "flex";
 }
 
 // Helpers
